@@ -60,6 +60,9 @@ int main(int argc, char** argv) {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     double local_scale = scale;
+    double pan_x = 0.0, pan_y = 0.0; // pixels per frame
+    if (argc >= 5) pan_x = atof(argv[4]);
+    if (argc >= 6) pan_y = atof(argv[5]);
     while (!glfwWindowShouldClose(win)) {
         // run kernel
         err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buf);
@@ -84,6 +87,9 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(win);
         glfwPollEvents();
 
+        // apply pan in pixel units scaled by current pixel size
+        cx += (float)(pan_x * local_scale);
+        cy += (float)(pan_y * local_scale);
         local_scale *= zoom_per_frame;
         std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60fps cap
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;

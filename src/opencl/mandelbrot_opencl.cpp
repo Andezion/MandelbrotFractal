@@ -26,8 +26,11 @@ int main(int argc, char** argv)
     if (argc >= 3) { width = atoi(argv[1]); height = atoi(argv[2]); }
     if (argc >= 4) frames = atoi(argv[3]);
     if (argc >= 5) zoom_per_frame = atof(argv[4]);
-    if (argc >= 7) { cx = atof(argv[5]); cy = atof(argv[6]); }
-    if (argc >= 8) maxIter = atoi(argv[7]);
+    double pan_x = 0.0, pan_y = 0.0;
+    if (argc >= 6) pan_x = atof(argv[5]);
+    if (argc >= 7) pan_y = atof(argv[6]);
+    if (argc >= 9) { cx = atof(argv[7]); cy = atof(argv[8]); }
+    if (argc >= 10) maxIter = atoi(argv[9]);
 
     size_t imgSize = (size_t)width * height * 3;
     std::vector<unsigned char> img(imgSize);
@@ -101,6 +104,9 @@ int main(int argc, char** argv)
         }
         std::cout << "Wrote " << outpath << " scale=" << std::setprecision(12) << scale << "\n";
 
+        // apply pan (pixels per frame converted to complex-plane units)
+        cx += (float)(pan_x * scale);
+        cy += (float)(pan_y * scale);
         scale *= zoom_per_frame;
         if (f % 30 == 0 && f>0) maxIter = (int)(maxIter * 1.2);
     }
