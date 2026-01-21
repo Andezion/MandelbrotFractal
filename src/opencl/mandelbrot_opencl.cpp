@@ -6,22 +6,37 @@
 #define CL_TARGET_OPENCL_VERSION 120
 #include <CL/cl.h>
 
-static std::string readFile(const std::string &path) {
+static std::string readFile(const std::string &path) 
+{
     std::ifstream ifs(path);
-    return std::string((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    return std::string((std::istreambuf_iterator<char>(ifs)), 
+    std::istreambuf_iterator<char>());
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv) 
+{
     int width = 1024, height = 768, maxIter = 1000;
     float cx = -0.6f, cy = 0.0f, scale = 3.0f / width;
-    if (argc >= 3) { width = atoi(argv[1]); height = atoi(argv[2]); }
+
+    if (argc >= 3) 
+    { 
+        width = atoi(argv[1]); 
+        height = atoi(argv[2]); 
+    }
+
     size_t imgSize = (size_t)width * height * 3;
     std::vector<unsigned char> img(imgSize);
 
     cl_int err;
     cl_uint platformCount;
+
     clGetPlatformIDs(0, nullptr, &platformCount);
-    if (platformCount == 0) { std::cerr << "No OpenCL platforms found\n"; return 1; }
+    if (platformCount == 0) 
+    { 
+        std::cerr << "No OpenCL platforms found\n"; 
+        return 1; 
+    }
+
     std::vector<cl_platform_id> platforms(platformCount);
     clGetPlatformIDs(platformCount, platforms.data(), nullptr);
 
@@ -35,13 +50,18 @@ int main(int argc, char** argv) {
     const char* src_c = src.c_str();
     size_t src_len = src.size();
     cl_program program = clCreateProgramWithSource(context, 1, &src_c, &src_len, &err);
+
     err = clBuildProgram(program, 1, &device, nullptr, nullptr, nullptr);
-    if (err != CL_SUCCESS) {
+    if (err != CL_SUCCESS) 
+    {
         size_t logSize;
         clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &logSize);
+
         std::string log(logSize, '\0');
+
         clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, logSize, &log[0], nullptr);
         std::cerr << "Build log:\n" << log << "\n";
+
         return 1;
     }
 
@@ -57,14 +77,18 @@ int main(int argc, char** argv) {
     err |= clSetKernelArg(kernel, 6, sizeof(int), &maxIter);
 
     size_t global[2] = {(size_t)width, (size_t)height};
-    err = clEnqueueNDRangeKernel(queue, kernel, 2, nullptr, global, nullptr, 0, nullptr, nullptr);
+    err = clEnqueueNDRangeKernel(queue, kernel, 2, nullptr, global, 
+        nullptr, 0, nullptr, nullptr);
     clFinish(queue);
 
     err = clEnqueueReadBuffer(queue, buf, CL_TRUE, 0, imgSize, img.data(), 0, nullptr, nullptr);
     std::string out = "out/mandelbrot_opencl.ppm";
-    if (!write_ppm(out, img.data(), width, height)) {
+    if (!write_ppm(out, img.data(), width, height)) 
+    {
         std::cerr << "Failed to write " << out << "\n";
-    } else {
+    } 
+    else 
+    {
         std::cout << "Wrote " << out << "\n";
     }
 
