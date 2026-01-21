@@ -4,18 +4,31 @@
 #include <string>
 #include "../common/image.h"
 
-__global__ void mandelbrotKernel(unsigned char* img, int width, int height, float cx, float cy, float scale, int maxIter) {
+__global__ void mandelbrotKernel(unsigned char* img, int width, int height, 
+    float cx, float cy, float scale, int maxIter) 
+{
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    if (x >= width || y >= height) return;
+
+    if (x >= width || y >= height) 
+    {
+        return;
+    }
+
     float fx = cx + (x - width / 2.0f) * scale;
     float fy = cy + (y - height / 2.0f) * scale;
+
     float a = 0.0f, b = 0.0f;
     int iter = 0;
-    while (a*a + b*b <= 4.0f && iter < maxIter) {
+
+    while (a * a + b * b <= 4.0f && iter < maxIter) 
+    {
         float na = a*a - b*b + fx;
         float nb = 2.0f*a*b + fy;
-        a = na; b = nb; iter++;
+
+        a = na; 
+        b = nb; 
+        iter++;
     }
     int idx = (y * width + x) * 3;
     unsigned char color = (unsigned char)(255.0f * iter / maxIter);
