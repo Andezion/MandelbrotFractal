@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include <cmath>
+#include <cstdio>
 #include "../common/image.h"
 #define CL_TARGET_OPENCL_VERSION 120
 #include <CL/cl.h>
@@ -20,7 +21,6 @@ int main(int argc, char** argv) {
     size_t imgSize = (size_t)width * height * 3;
     std::vector<unsigned char> img(imgSize);
 
-    // OpenCL setup (pick first platform/device)
     cl_int err;
     cl_uint platformCount = 0;
     clGetPlatformIDs(0, nullptr, &platformCount);
@@ -33,7 +33,6 @@ int main(int argc, char** argv) {
     cl_context context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &err);
     cl_command_queue queue = clCreateCommandQueue(context, device, 0, &err);
 
-    // build program
     std::string src;
     {
         std::ifstream ifs("src/opencl/mandelbrot.cl");
@@ -52,7 +51,6 @@ int main(int argc, char** argv) {
     cl_kernel kernel = clCreateKernel(program, "mandelbrot", &err);
     cl_mem buf = clCreateBuffer(context, CL_MEM_WRITE_ONLY, imgSize, nullptr, &err);
 
-    // GLFW window
     if (!glfwInit()) { std::cerr << "glfwInit failed\n"; return 1; }
     GLFWwindow* win = glfwCreateWindow(width, height, "Mandelbrot OpenCL Viewer", nullptr, nullptr);
     if (!win) { glfwTerminate(); std::cerr << "Failed to create window\n"; return 1; }
@@ -60,11 +58,23 @@ int main(int argc, char** argv) {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     double local_scale = scale;
-    double pan_x = 0.0, pan_y = 0.0; // pixels per frame
+    double pan_x = 0.0, pan_y = 0.0; 
     if (argc >= 5) pan_x = atof(argv[4]);
     if (argc >= 6) pan_y = atof(argv[5]);
+
+    const char* record_file = nullptr;
+    int record_fps = 30;
+    if (argc >= 7) record_file = argv[6];
+    if (argc >= 8) record_fps = atoi(argv[7]);
+    FILE* ff = nullptr;
+    if (record_file) {
+        std::string cmd = "ffmpeg -y -f rawvideo -pix_fmt rgb24 -s " + std::to_string(width) + "x" + std::to_string(height) +
+            " -r " + std::to_string(record_fps) + " -i - -c:v libx264 -pix_fmt yuv420p \"" + record_file + "\"";
+        ff = popen(cmd.c_str(), "w");
+        if (!ff) { std::cerr << "Failed to start ffmpeg for recording\n"; }
+        else { std::cout << "Recording to " << record_file << " at " << record_fps << " fps\n"; }
+    }
     while (!glfwWindowShouldClose(win)) {
-        // run kernel
         err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buf);
         err |= clSetKernelArg(kernel, 1, sizeof(int), &width);
         err |= clSetKernelArg(kernel, 2, sizeof(int), &height);
@@ -80,18 +90,20 @@ int main(int argc, char** argv) {
         clFinish(queue);
         clEnqueueReadBuffer(queue, buf, CL_TRUE, 0, imgSize, img.data(), 0, nullptr, nullptr);
 
-        // draw using glDrawPixels
         glClear(GL_COLOR_BUFFER_BIT);
         glRasterPos2i(-1, -1);
         glDrawPixels(width, height, GL_RGB, GL_UNSIGNED_BYTE, img.data());
         glfwSwapBuffers(win);
         glfwPollEvents();
 
-        // apply pan in pixel units scaled by current pixel size
+        if (ff) {
+            fwrite(img.data(), 1, imgSize, ff);
+        }
+
         cx += (float)(pan_x * local_scale);
         cy += (float)(pan_y * local_scale);
         local_scale *= zoom_per_frame;
-        std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60fps cap
+        std::this_thread::sleep_for(std::chrono::milliseconds(16)); 
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
     }
 
@@ -102,5 +114,6 @@ int main(int argc, char** argv) {
     clReleaseContext(context);
     glfwDestroyWindow(win);
     glfwTerminate();
+    if (ff) pclose(ff);
     return 0;
 }

@@ -104,7 +104,6 @@ int main(int argc, char** argv)
         }
         std::cout << "Wrote " << outpath << " scale=" << std::setprecision(12) << scale << "\n";
 
-        // apply pan (pixels per frame converted to complex-plane units)
         cx += (float)(pan_x * scale);
         cy += (float)(pan_y * scale);
         scale *= zoom_per_frame;
