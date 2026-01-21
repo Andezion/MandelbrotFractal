@@ -2,6 +2,8 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <cmath>
+#include <iomanip>
 #include "../common/image.h"
 #define CL_TARGET_OPENCL_VERSION 120
 #include <CL/cl.h>
@@ -16,13 +18,16 @@ static std::string readFile(const std::string &path)
 int main(int argc, char** argv) 
 {
     int width = 1024, height = 768, maxIter = 1000;
-    float cx = -0.6f, cy = 0.0f, scale = 3.0f / width;
+    int frames = 120;
+    float cx = -0.6f, cy = 0.0f;
+    double initial_scale = 3.0 / width;
+    double zoom_per_frame = 0.98; 
 
-    if (argc >= 3) 
-    { 
-        width = atoi(argv[1]); 
-        height = atoi(argv[2]); 
-    }
+    if (argc >= 3) { width = atoi(argv[1]); height = atoi(argv[2]); }
+    if (argc >= 4) frames = atoi(argv[3]);
+    if (argc >= 5) zoom_per_frame = atof(argv[4]);
+    if (argc >= 7) { cx = atof(argv[5]); cy = atof(argv[6]); }
+    if (argc >= 8) maxIter = atoi(argv[7]);
 
     size_t imgSize = (size_t)width * height * 3;
     std::vector<unsigned char> img(imgSize);
@@ -68,28 +73,36 @@ int main(int argc, char** argv)
     cl_kernel kernel = clCreateKernel(program, "mandelbrot", &err);
     cl_mem buf = clCreateBuffer(context, CL_MEM_WRITE_ONLY, imgSize, nullptr, &err);
 
-    err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buf);
-    err |= clSetKernelArg(kernel, 1, sizeof(int), &width);
-    err |= clSetKernelArg(kernel, 2, sizeof(int), &height);
-    err |= clSetKernelArg(kernel, 3, sizeof(float), &cx);
-    err |= clSetKernelArg(kernel, 4, sizeof(float), &cy);
-    err |= clSetKernelArg(kernel, 5, sizeof(float), &scale);
-    err |= clSetKernelArg(kernel, 6, sizeof(int), &maxIter);
-
-    size_t global[2] = {(size_t)width, (size_t)height};
-    err = clEnqueueNDRangeKernel(queue, kernel, 2, nullptr, global, 
-        nullptr, 0, nullptr, nullptr);
-    clFinish(queue);
-
-    err = clEnqueueReadBuffer(queue, buf, CL_TRUE, 0, imgSize, img.data(), 0, nullptr, nullptr);
-    std::string out = "out/mandelbrot_opencl.ppm";
-    if (!write_ppm(out, img.data(), width, height)) 
+    double scale = initial_scale;
+    for (int f = 0; f < frames; ++f) 
     {
-        std::cerr << "Failed to write " << out << "\n";
-    } 
-    else 
-    {
-        std::cout << "Wrote " << out << "\n";
+        err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buf);
+        err |= clSetKernelArg(kernel, 1, sizeof(int), &width);
+        err |= clSetKernelArg(kernel, 2, sizeof(int), &height);
+        float cx_f = (float)cx;
+        float cy_f = (float)cy;
+        float scale_f = (float)scale;
+        err |= clSetKernelArg(kernel, 3, sizeof(float), &cx_f);
+        err |= clSetKernelArg(kernel, 4, sizeof(float), &cy_f);
+        err |= clSetKernelArg(kernel, 5, sizeof(float), &scale_f);
+        err |= clSetKernelArg(kernel, 6, sizeof(int), &maxIter);
+
+        size_t global[2] = {(size_t)width, (size_t)height};
+        err = clEnqueueNDRangeKernel(queue, kernel, 2, nullptr, global, nullptr, 0, nullptr, nullptr);
+        clFinish(queue);
+
+        err = clEnqueueReadBuffer(queue, buf, CL_TRUE, 0, imgSize, img.data(), 0, nullptr, nullptr);
+
+        char outpath[256];
+        snprintf(outpath, sizeof(outpath), "out/mandelbrot_opencl_%05d.ppm", f);
+        if (!write_ppm(outpath, img.data(), width, height)) {
+            std::cerr << "Failed to write " << outpath << "\n";
+            break;
+        }
+        std::cout << "Wrote " << outpath << " scale=" << std::setprecision(12) << scale << "\n";
+
+        scale *= zoom_per_frame;
+        if (f % 30 == 0 && f>0) maxIter = (int)(maxIter * 1.2);
     }
 
     clReleaseMemObject(buf);

@@ -12,6 +12,12 @@ opencl:
 		-o build/mandelbrot_opencl \
 		$(OPENCL_LDFLAGS)
 
+viewer_opencl:
+	$(CXX) $(CXXFLAGS) $(OPENCL_CFLAGS) \
+		src/viewer/mandelbrot_viewer_opencl.cpp \
+		-o build/mandelbrot_viewer_opencl \
+		$(OPENCL_LDFLAGS) -lglfw -lGL -pthread
+
 clean:
 	rm -f build/mandelbrot_opencl
 
