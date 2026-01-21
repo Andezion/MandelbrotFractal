@@ -3,26 +3,26 @@ CUDA + OpenCL Mandelbrot
 Build:
 
 ```bash
-# Собрать оба варианта
+# Build both
 make
 
-# Или отдельно
+# Not both
 make cuda
 make opencl
 ```
 
-Запуск:
+Run:
 
 ```bash
-# CUDA (если доступен nvcc и GPU)
+# CUDA 
 ./build/mandelbrot_cuda 1024 768
 
 # OpenCL
 ./build/mandelbrot_opencl 1024 768
 ```
 
-Результат: `out/mandelbrot_cuda.ppm` и `out/mandelbrot_opencl.ppm`. Откройте их любым просмотрщиком изображений, поддерживающим PPM.
-
+Result: `out/mandelbrot_cuda.ppm` and `out/mandelbrot_opencl.ppm`. Open them using smth idk(ppm viewer)
+!
 Interactive viewer and recording
  - Build the interactive OpenCL viewer:
 ```bash
