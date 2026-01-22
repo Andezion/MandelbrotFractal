@@ -102,6 +102,7 @@ int main(int argc, char** argv) {
 
         cx += (float)(pan_x * local_scale);
         cy += (float)(pan_y * local_scale);
+        std::cout << "cx: " << cx << ", cy: " << cy << ", scale: " << local_scale << ", pan_x: " << pan_x << ", pan_y: " << pan_y << std::endl;
         local_scale *= zoom_per_frame;
         std::this_thread::sleep_for(std::chrono::milliseconds(16)); 
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
