@@ -42,7 +42,7 @@ Examples:
 ./build/mandelbrot_viewer_opencl 1024 768 0.98
 
 # Run and record to MP4 (zoom 0.98, pan left 0.5 pixels/frame, 30 fps)
-./build/mandelbrot_viewer_opencl 1024 768 0.98 -0.5 0 out/zoom.mp4 30
+./build/mandelbrot_viewer_opencl 1024 768 0.99 -0.5 -0.5 out/zoom.mp4 30
 ```
 
 Notes and tips
