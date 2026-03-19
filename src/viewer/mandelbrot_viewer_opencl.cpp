@@ -130,7 +130,6 @@ int main(int argc, char** argv) {
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
 
         if (needs_redraw) {
-            // Set kernel args and compute
             double cx_d = cx, cy_d = cy, scale_d = scale;
             err  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &buf);
             err |= clSetKernelArg(kernel, 1, sizeof(int), &width);
